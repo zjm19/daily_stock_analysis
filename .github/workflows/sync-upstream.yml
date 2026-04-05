@@ -1,0 +1,58 @@
+name: '自动同步上游 daily_stock_analysis (保留配置)'
+
+on:
+  schedule:
+    # 每两个月（奇数月）1 号 UTC 0:00 运行，对应北京时间上午 8:00
+    - cron: '0 0 1 */2 *'
+  workflow_dispatch:            # 支持手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'                # 请根据你的默认分支名称调整（可能是 main 或 master）
+          fetch-depth: 0
+
+      # 关键：配置自定义合并驱动，保留本地文件
+      - name: 配置 Git 合并驱动
+        run: |
+          git config merge.keepLocal.name "Keep Local Version"
+          git config merge.keepLocal.driver "git merge --ours %O %A %B"
+
+      # 关键：指定需要保护的文件（你的配置文件）
+      - name: 设置 .gitattributes 保护规则
+        run: |
+          echo ".env merge=keepLocal" >> .gitattributes
+          echo "config.json merge=keepLocal" >> .gitattributes
+          # 如果你还修改过其他文件，可以继续添加
+          # echo "docker-compose.yml merge=keepLocal" >> .gitattributes
+          # 也可以保护此工作流自身，避免被上游覆盖
+          echo ".github/workflows/auto-sync-daily-stock.yml merge=keepLocal" >> .gitattributes
+
+      - name: 添加上游仓库
+        run: |
+          git remote add upstream https://github.com/ZhuLinsen/daily_stock_analysis
+
+      - name: 获取上游更新
+        run: git fetch upstream main
+
+      - name: 合并上游更改
+        run: |
+          git checkout main
+          # 允许无关历史（首次同步必需）
+          git merge upstream/main --allow-unrelated-histories --no-edit || true
+
+      - name: 推送合并后的更新
+        run: |
+          if git diff --quiet HEAD@{1} HEAD; then
+            echo "没有上游更新，无需提交。"
+          else
+            echo "检测到上游更新，正在提交并推送..."
+            git push origin main
+          fi
