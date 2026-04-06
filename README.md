@@ -490,7 +490,7 @@ npm run build
 
 如果你在项目中使用或基于本项目进行二次开发，
 非常欢迎在 README 或文档中注明来源并附上本仓库链接。
-这将有助于项目的持续维护和社区发展。
+这将有助于项目的持续维护和社区发展。 
 
 ## 📬 联系与合作
 - GitHub Issues：[提交 Issue](https://github.com/ZhuLinsen/daily_stock_analysis/issues)
